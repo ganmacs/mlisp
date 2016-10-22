@@ -1,6 +1,6 @@
 #include "mlisp.h"
 
-void print_node(node_t *node)
+void _print_node(node_t *node)
 {
   switch(node->type) {
   case NODE_INT:
@@ -13,15 +13,15 @@ void print_node(node_t *node)
     printf("(");
     node_t *car = node->car;
     node_t *cdr = node->cdr;
-    print_node(car);
+    _print_node(car);
 
     if (cdr->type != NODE_NIL && cdr->type != NODE_CELL) {
       printf(" . ");
-      print_node(cdr);
+      _print_node(cdr);
     } else {
       for (; cdr->type != NODE_NIL; cdr = cdr->cdr) {
         printf(" ");
-        print_node(cdr->car);
+        _print_node(cdr->car);
       }
     }
 
@@ -91,5 +91,14 @@ void print_obj(obj_t *obj)
     return;
 
   _print_obj(obj);
+  puts("");
+}
+
+void print_node(node_t *node)
+{
+  if (node == NULL)
+    return;
+
+  _print_node(node);
   puts("");
 }

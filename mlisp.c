@@ -51,7 +51,6 @@ obj_t* new_symbol(char *name)
   obj_t* obj = allocate(T_SYMBOL);
   obj->name = strdup(name);
   return obj;
-
 }
 
 obj_t *new_primitive(primitive_t *fn)

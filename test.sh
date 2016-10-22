@@ -23,7 +23,6 @@ do_run() {
 run() {
     echo -n "- Testing $1 ... "
     do_run "$@"
-    echo
 }
 
 parse_run() {
