@@ -6,6 +6,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#define MEMORY_SIZE 65536
+
 typedef enum {
   NODE_INT,
   NODE_SYMBOL,
@@ -52,8 +54,6 @@ typedef struct obj_t *primitive_t(struct obj_t **env, struct obj_t *args);
 /* mlisp object */
 typedef struct obj_t {
   type_t type;
-
-  /* int size; */
 
   union {
     int value;                  /* store integer */

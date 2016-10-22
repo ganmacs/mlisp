@@ -1,9 +1,13 @@
 #include "mlisp.h"
+#include <sys/mman.h>
 
 obj_t *eval(obj_t *obj, obj_t **env);
 
 static obj_t *NIL = &(obj_t) { T_NIL };
 obj_t *Symbol;
+
+size_t mem_used;
+void* memory;
 
 static int get_env_flag(char *name) {
   char *val = getenv(name);
@@ -16,11 +20,22 @@ void error(char *msg)
   exit(1);
 }
 
+void *allocate_space()
+{
+  return mmap(NULL, MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+}
+
 void *allocate(type_t type)
 {
-  /* TODO use a memory allocation function implemented by myself  */
-  obj_t *obj = (obj_t *)malloc(sizeof(obj_t));
+  size_t size = sizeof(obj_t);
+  obj_t *obj = (obj_t *)(memory + mem_used);
+
+  if (MEMORY_SIZE < (size + mem_used)) {
+    /* run gc */
+  }
+
   obj->type = type;
+  mem_used += size;
   return obj;
 }
 
@@ -221,6 +236,11 @@ void define_primitives(char *name, primitive_t *fn, obj_t **env)
 
 void initialize(obj_t **env)
 {
+  Symbol = NIL;
+
+  mem_used = 0;
+  memory = allocate_space();
+
   define_primitives("+", prim_plus, env);
   define_primitives("-", prim_minus, env);
   define_primitives("*", prim_mul, env);
@@ -236,11 +256,10 @@ int main(int argc, char *argv[])
     return 0;
   }
 
-  Symbol = NIL;
   obj_t *env = NIL;
-  obj_t *obj = allocation(node);
 
   initialize(&env);
+  obj_t *obj = allocation(node);
 
   if (get_env_flag("MLISP_EVAL_TEST")) {
     print_obj(eval(obj, &env));
