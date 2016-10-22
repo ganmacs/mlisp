@@ -40,19 +40,6 @@ node_t *new_node_cell(node_t* car, node_t* cdr)
   return node;
 }
 
-node_t *reverse(node_t *cell)
-{
-  node_t* node = Nil;
-  while (cell != Nil) {
-    node_t *head = cell;
-    cell = cell->cdr;
-    head->cdr = node;
-    node = head;
-  }
-
-  return node;
-}
-
 node_t *parse_quote()
 {
   node_t *v = new_node_cell(parse(), Nil);
@@ -61,30 +48,22 @@ node_t *parse_quote()
 
 node_t *parse_list()
 {
-  node_t *head = Nil;
+  node_t *node = parse();
 
-  for(;;) {
-    node_t *node = parse();
-
-    if (node == NULL) {
+  if (node == NULL) {
+    error("Paren is Unmatch");
+  } else if (node == Dot) {   /* (a . b) */
+    node_t *cdr = parse();
+    if (parse() != RParen) {
       error("Paren is Unmatch");
-    } else if (node == Dot) {   /* (a . b) */
-      node_t *cdr = parse();
-
-      if (parse() != RParen) {
-        error("Paren is Unmatch");
-        exit(1);
-      }
-
-      node_t *cell = reverse(head);
-      cell->cdr = cdr;
-      return cell;
-    } else if (node == RParen) {
-      return reverse(head);
+      exit(1);
     }
-
-    head = new_node_cell(node, head);
+    return cdr;
+  } else if (node == RParen) {
+    return Nil;
   }
+
+  return new_node_cell(node, parse_list());
 }
 
 node_t *parse_symbol(char v)
@@ -105,13 +84,16 @@ node_t *parse_symbol(char v)
   return new_node_symbol(buf);
 }
 
+int num(int acc) {
+  if (isdigit(peek()))
+    return num(acc * 10 + (getchar() - '0'));
+
+  return acc;
+}
+
 node_t *parse_digit(char d)
 {
-  int v = d - '0';
-  while (isdigit(peek())) {
-    v = (v * 10) + (getchar() - '0');
-  }
-  return new_node_int(v);
+  return new_node_int(num(d - '0'));
 }
 
 void destory_ast(node_t *node)
