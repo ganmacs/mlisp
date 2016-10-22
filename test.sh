@@ -21,7 +21,8 @@ do_run() {
 }
 
 run() {
-    echo -n "Testing $1 ... "
+    echo -n "- Testing $1"
+    echo
     do_run "$@"
     echo
 }
@@ -53,3 +54,7 @@ parse_run nil "'()" "(quote nil)"
 parse_run lambda "((lambda (x) (+ x 1)) 10)" "((lambda (x) (+ x 1)) 10)"
 parse_run let "(let ((x 10)) (+ x 1))" "(let ((x 10)) (+ x 1))"
 parse_run if "(if () (+ 1 2) (+ 2 3))" "(if nil (+ 1 2) (+ 2 3))"
+
+echo -e "\n== Eval test =="
+
+eval_run int "3" 3

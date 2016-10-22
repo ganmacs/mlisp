@@ -50,7 +50,7 @@ typedef enum {
 typedef struct obj_t {
   type_t type;
 
-  int size;
+  /* int size; */
 
   union {
     int value;                  /* store integer */
@@ -72,5 +72,6 @@ node_t *parse();
 
 /* debug */
 void print_node(node_t *node);
+void print_obj(obj_t *obj);
 
 #endif  /* MLISP_H */
