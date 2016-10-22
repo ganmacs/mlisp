@@ -46,6 +46,9 @@ typedef enum {
   T_TRUE
 } type_t;
 
+
+typedef struct obj_t *primitive_t(struct obj_t **env, struct obj_t *args);
+
 /* mlisp object */
 typedef struct obj_t {
   type_t type;
@@ -56,6 +59,8 @@ typedef struct obj_t {
     int value;                  /* store integer */
 
     char *name;                 /* store string */
+
+    primitive_t *fn;            /* store primitive (function) */
 
     struct {                    /* store cell */
       struct obj_t *car;

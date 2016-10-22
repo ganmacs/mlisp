@@ -21,8 +21,7 @@ do_run() {
 }
 
 run() {
-    echo -n "- Testing $1"
-    echo
+    echo -n "- Testing $1 ... "
     do_run "$@"
     echo
 }
@@ -58,3 +57,11 @@ parse_run if "(if () (+ 1 2) (+ 2 3))" "(if nil (+ 1 2) (+ 2 3))"
 echo -e "\n== Eval test =="
 
 eval_run int "3" 3
+eval_run plus "(+ 1 2)" 3
+eval_run add_3_args "(+ 1 2 10)" 13
+eval_run minus "(- 2 1)" 1
+eval_run minus_3_args "(- 10 1 2)" 7
+eval_run mul "(* 2 1)" 2
+eval_run mul_3_args "(* 10 1 2)" 20
+eval_run div "(/ 2 1)" 2
+eval_run div_3_args "(/ 10 1 2)" 5
