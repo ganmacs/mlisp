@@ -25,13 +25,30 @@ void *allocate_space()
   return mmap(NULL, MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 }
 
-void *allocate(type_t type)
+void gc_mark(obj_t **env)
+{
+  /* marking */
+}
+
+void gc_sweep(obj_t **env)
+{
+  /* sweeping */
+}
+
+void gc(obj_t **env)
+{
+  gc_mark(env);
+  gc_sweep(env);
+}
+
+void *allocate(obj_t **env, type_t type)
 {
   size_t size = sizeof(obj_t);
   obj_t *obj = (obj_t *)(memory + mem_used);
 
-  if (MEMORY_SIZE < (size + mem_used)) {
-    /* run gc */
+  /* GC always runs now */
+  if (1 || MEMORY_SIZE < (size + mem_used)) {
+    gc(env);
   }
 
   obj->type = type;
@@ -39,36 +56,36 @@ void *allocate(type_t type)
   return obj;
 }
 
-obj_t* new_int(int v)
+obj_t* new_int(obj_t **env, int v)
 {
-  obj_t* obj = allocate(T_INT);
+  obj_t* obj = allocate(env, T_INT);
   obj->value = v;
   return obj;
 }
 
-obj_t* new_symbol(char *name)
+obj_t* new_symbol(obj_t **env, char *name)
 {
-  obj_t* obj = allocate(T_SYMBOL);
+  obj_t* obj = allocate(env, T_SYMBOL);
   obj->name = strdup(name);
   return obj;
 }
 
-obj_t *new_primitive(primitive_t *fn)
+obj_t *new_primitive(obj_t **env, primitive_t *fn)
 {
-  obj_t *obj = (obj_t *)allocate(T_PRIMITIVE);
+  obj_t *obj = (obj_t *)allocate(env, T_PRIMITIVE);
   obj->fn = fn;
   return obj;
 }
 
-obj_t* new_cell(obj_t *car, obj_t *cdr)
+obj_t* new_cell(obj_t **env, obj_t *car, obj_t *cdr)
 {
-  obj_t* obj = allocate(T_CELL);
+  obj_t* obj = allocate(env, T_CELL);
   obj->car = car;
   obj->cdr = cdr;
   return obj;
 }
 
-obj_t* intern(char *name)
+obj_t* intern(obj_t **env, char *name)
 {
   for (obj_t *s = Symbol; s->type == T_NIL; s = s->cdr) {
     if (s->type == T_NIL) {
@@ -78,23 +95,23 @@ obj_t* intern(char *name)
     }
   }
 
-  obj_t *sym = new_symbol(name);
-  Symbol = new_cell(sym, Symbol);
+  obj_t *sym = new_symbol(env, name);
+  Symbol = new_cell(env, sym, Symbol);
   return sym;
 }
 
-obj_t *allocation(node_t *node)
+obj_t *allocation(obj_t **env, node_t *node)
 {
   if (node == NULL)
     return NULL;
 
   switch(node->type) {
   case NODE_INT:
-    return new_int(node->value);
+    return new_int(env, node->value);
   case NODE_SYMBOL:
-    return intern(node->name);
+    return intern(env, node->name);
   case NODE_CELL:
-    return new_cell(allocation(node->car), allocation(node->cdr));
+    return new_cell(env, allocation(env, node->car), allocation(env, node->cdr));
   case NODE_NIL:
     return NIL;
   default:
@@ -105,9 +122,9 @@ obj_t *allocation(node_t *node)
 
 void add_variable(obj_t **env, char *name, obj_t *value)
 {
-  obj_t* sym = intern(name);
-  obj_t *val = new_cell(sym, value);
-  *env = new_cell(val, *env);
+  obj_t* sym = intern(env, name);
+  obj_t *val = new_cell(env, sym, value);
+  *env = new_cell(env, val, *env);
 }
 
 obj_t *find_variable(obj_t *env, char *name)
@@ -131,7 +148,7 @@ obj_t *eval_list(obj_t *args, obj_t **env)
   if (args->type == T_NIL)
     return NIL;
 
-  return new_cell(eval(args->car, env), eval_list(args->cdr, env));
+  return new_cell(env, eval(args->car, env), eval_list(args->cdr, env));
 }
 
 obj_t *apply(obj_t *fn, obj_t *args, obj_t **env)
@@ -179,7 +196,7 @@ obj_t *prim_plus(struct obj_t **env, struct obj_t *args)
     v += args->car->value;
   }
 
-  return new_int(v);
+  return new_int(env, v);
 }
 
 obj_t *prim_minus(struct obj_t **env, struct obj_t *args)
@@ -194,7 +211,7 @@ obj_t *prim_minus(struct obj_t **env, struct obj_t *args)
     v -= lst->car->value;
   }
 
-  return new_int(v);
+  return new_int(env, v);
 }
 
 obj_t *prim_mul(struct obj_t **env, struct obj_t *args)
@@ -206,7 +223,7 @@ obj_t *prim_mul(struct obj_t **env, struct obj_t *args)
     v *= args->car->value;
   }
 
-  return new_int(v);
+  return new_int(env, v);
 }
 
 obj_t *prim_div(struct obj_t **env, struct obj_t *args)
@@ -224,12 +241,12 @@ obj_t *prim_div(struct obj_t **env, struct obj_t *args)
     v /= lst->car->value;
   }
 
-  return new_int(v);
+  return new_int(env, v);
 }
 
 void define_primitives(char *name, primitive_t *fn, obj_t **env)
 {
-  obj_t *prim = new_primitive(fn);
+  obj_t *prim = new_primitive(env, fn);
   add_variable(env, name, prim);
 }
 
@@ -258,7 +275,7 @@ int main(int argc, char *argv[])
   obj_t *env = NIL;
 
   initialize(&env);
-  obj_t *obj = allocation(node);
+  obj_t *obj = allocation(&env, node);
 
   if (get_env_flag("MLISP_EVAL_TEST")) {
     print_obj(eval(obj, &env));
