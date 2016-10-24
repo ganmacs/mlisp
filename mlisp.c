@@ -121,7 +121,7 @@ obj_t *allocation(obj_t **env, node_t *node)
   }
 }
 
-void add_variable(obj_t **env, char *name, obj_t *value)
+void define_variable(obj_t **env, char *name, obj_t *value)
 {
   obj_t *sym = intern(env, name);
   obj_t *val = new_cell(env, sym, value);
@@ -248,7 +248,7 @@ obj_t *prim_div(struct obj_t **env, struct obj_t *args)
 void define_primitives(char *name, primitive_t *fn, obj_t **env)
 {
   obj_t *prim = new_primitive(env, fn);
-  add_variable(env, name, prim);
+  define_variable(env, name, prim);
 }
 
 void initialize(obj_t **env)
