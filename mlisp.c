@@ -7,7 +7,8 @@ static obj_t *NIL = &(obj_t) { T_NIL };
 obj_t *Symbol;
 
 size_t mem_used;
-void* memory;
+void *memory;
+
 
 static int get_env_flag(char *name) {
   char *val = getenv(name);
@@ -41,7 +42,7 @@ void gc(obj_t **env)
   gc_sweep(env);
 }
 
-void *allocate(obj_t **env, type_t type)
+obj_t *allocate(obj_t **env, type_t type)
 {
   size_t size = sizeof(obj_t);
   obj_t *obj = (obj_t *)(memory + mem_used);
@@ -56,16 +57,16 @@ void *allocate(obj_t **env, type_t type)
   return obj;
 }
 
-obj_t* new_int(obj_t **env, int v)
+obj_t *new_int(obj_t **env, int v)
 {
-  obj_t* obj = allocate(env, T_INT);
+  obj_t *obj = allocate(env, T_INT);
   obj->value = v;
   return obj;
 }
 
-obj_t* new_symbol(obj_t **env, char *name)
+obj_t *new_symbol(obj_t **env, char *name)
 {
-  obj_t* obj = allocate(env, T_SYMBOL);
+  obj_t *obj = allocate(env, T_SYMBOL);
   obj->name = strdup(name);
   return obj;
 }
@@ -77,15 +78,15 @@ obj_t *new_primitive(obj_t **env, primitive_t *fn)
   return obj;
 }
 
-obj_t* new_cell(obj_t **env, obj_t *car, obj_t *cdr)
+obj_t *new_cell(obj_t **env, obj_t *car, obj_t *cdr)
 {
-  obj_t* obj = allocate(env, T_CELL);
+  obj_t *obj = allocate(env, T_CELL);
   obj->car = car;
   obj->cdr = cdr;
   return obj;
 }
 
-obj_t* intern(obj_t **env, char *name)
+obj_t *intern(obj_t **env, char *name)
 {
   for (obj_t *s = Symbol; s->type == T_NIL; s = s->cdr) {
     if (s->type == T_NIL) {
@@ -122,7 +123,7 @@ obj_t *allocation(obj_t **env, node_t *node)
 
 void add_variable(obj_t **env, char *name, obj_t *value)
 {
-  obj_t* sym = intern(env, name);
+  obj_t *sym = intern(env, name);
   obj_t *val = new_cell(env, sym, value);
   *env = new_cell(env, val, *env);
 }
@@ -163,7 +164,7 @@ obj_t *eval(obj_t *obj, obj_t **env)
   case T_INT:
     return obj;
   case T_SYMBOL: {
-    obj_t* primitve = find_variable(*env, obj->name);
+    obj_t *primitve = find_variable(*env, obj->name);
     if (primitve == NULL)
       error("Unkonw symbol");
 
