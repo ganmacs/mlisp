@@ -196,8 +196,7 @@ obj_t *eval_list(obj_t *args, obj_t **env)
 
 obj_t *apply(obj_t *fn, obj_t *args, obj_t **env)
 {
-  obj_t *nargs = eval_list(args, env);
-  return fn->fn(env, nargs);
+  return fn->fn(env, args);
 }
 
 obj_t *eval(obj_t *obj, obj_t **env)
@@ -216,12 +215,10 @@ obj_t *eval(obj_t *obj, obj_t **env)
     obj_t *fn = obj->car;
     fn = eval(fn, env);
 
-    if (fn->type != T_PRIMITIVE) {
-      error("The head of cons should is a function");
-    }
+    if (fn->type != T_PRIMITIVE)
+      error("The head of cons should be a function");
 
-    obj_t *nargs = eval_list(obj->cdr, env);
-    return apply(fn, nargs, env);
+    return apply(fn, obj->cdr, env);
   }
   default:
     printf("%d\n", obj->type);
@@ -233,10 +230,10 @@ obj_t *eval(obj_t *obj, obj_t **env)
 obj_t *prim_plus(struct obj_t **env, struct obj_t *args)
 {
   int v = 0;
-  for (; args->type != T_NIL; args = args->cdr) {
-    if (args->car->type != T_INT)
+  for (obj_t *nargs = eval_list(args, env); nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (nargs->car->type != T_INT)
       error("`+` is only used for int values");
-    v += args->car->value;
+    v += nargs->car->value;
   }
 
   return new_int(env, v);
@@ -248,7 +245,8 @@ obj_t *prim_minus(struct obj_t **env, struct obj_t *args)
     error("`-` is only used for int values");
   int v = args->car->value;
 
-  for (obj_t *lst = args->cdr; lst->type != T_NIL;  lst = lst->cdr) {
+  obj_t *nargs = eval_list(args, env);
+  for (obj_t *lst = nargs->cdr; lst->type != T_NIL;  lst = lst->cdr) {
     if (lst->car->type != T_INT)
       error("`-` is only used for int values");
     v -= lst->car->value;
@@ -260,10 +258,10 @@ obj_t *prim_minus(struct obj_t **env, struct obj_t *args)
 obj_t *prim_mul(struct obj_t **env, struct obj_t *args)
 {
   int v = 1;
-  for (; args->type != T_NIL; args = args->cdr) {
-    if (args->car->type != T_INT)
+  for (obj_t *nargs = eval_list(args, env); nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (nargs->car->type != T_INT)
       error("`*` is only used for int values");
-    v *= args->car->value;
+    v *= nargs->car->value;
   }
 
   return new_int(env, v);
@@ -275,9 +273,10 @@ obj_t *prim_div(struct obj_t **env, struct obj_t *args)
     error("`/` is only used for int values");
   int v = args->car->value;
 
-  for (obj_t *lst = args->cdr; lst->type != T_NIL;  lst = lst->cdr) {
+  obj_t *nargs = eval_list(args, env);
+  for (obj_t *lst = nargs->cdr; lst->type != T_NIL;  lst = lst->cdr) {
     if (lst->car->type == T_INT && lst->car->value == 0) {
-      error("Can't divied by 0");
+      error("Error: divided by 0");
     } else  if (lst->car->type != T_INT) {
       error("`/` is only used for int values");
     }
