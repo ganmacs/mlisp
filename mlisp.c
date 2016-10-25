@@ -299,6 +299,19 @@ obj_t *prim_progn(struct obj_t **env, struct obj_t *args)
   return ret;
 }
 
+obj_t *prim_let(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nenv = *env;
+  obj_t *sym = NIL, *val = NIL;
+  for (obj_t *largs = args->car; largs->type != T_NIL; largs = largs->cdr) {
+    sym = intern(env, largs->car->car->name);
+    val = new_cell(env, sym, largs->car->cdr->car);
+    nenv = new_cell(env, val, nenv);
+  }
+
+  return prim_progn(&nenv, args->cdr);
+}
+
 void define_primitives(char *name, primitive_t *fn, obj_t **env)
 {
   obj_t *prim = new_primitive(env, fn);
@@ -316,6 +329,7 @@ void initialize(obj_t **env)
   define_primitives("*", prim_mul, env);
   define_primitives("/", prim_div, env);
   define_primitives("progn", prim_progn, env);
+  define_primitives("let", prim_let, env);
   GC_LOCK = 0;
 }
 

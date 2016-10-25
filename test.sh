@@ -70,3 +70,7 @@ eval_run progn2 '(progn (+ 1 2) 10)' 10
 eval_run progn2 '(progn 10 (+ 1 2))' 3
 eval_run progn3 '(progn 10 (* 1 2) (* 10 30))' 300
 eval_run progn3 '(progn 10 (* 1 2) (progn 1 (+ 10 20)))' 30
+
+eval_run let '(let ((x 10)) (+ 10 x))' 20
+eval_run let2 '(let ((x 10) (y 20)) (+ y 10 x))' 40
+eval_run let2 '(let ((x 10) (y 20)) (progn (+ y 10 x) (* y x)))' 200
