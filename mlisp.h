@@ -41,7 +41,6 @@ typedef enum {
   T_PRIMITIVE,
   T_FUNCTION,
   T_CELL,
-  /* T_ENV, */
   T_MOVED,
 
   T_NIL,
@@ -51,9 +50,19 @@ typedef enum {
 
 typedef struct obj_t *primitive_t(struct obj_t **env, struct obj_t *args);
 
+typedef enum gc_mark_t {
+  MARK,
+  UNMARK
+} gc_mark_t;
+
 /* mlisp object */
 typedef struct obj_t {
   type_t type;
+
+  struct {
+    gc_mark_t marked;
+    struct obj_t *next;         /* next object ptr */
+  } meta;
 
   union {
     int value;                  /* store integer */

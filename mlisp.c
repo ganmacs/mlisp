@@ -9,6 +9,7 @@ obj_t *Symbol;
 size_t mem_used;
 void *memory;
 
+int GC_LOCK;
 
 static int get_env_flag(char *name) {
   char *val = getenv(name);
@@ -26,20 +27,55 @@ void *allocate_space()
   return mmap(NULL, MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 }
 
-void gc_mark(obj_t **env)
+void gc_clear_marked(obj_t **env)
 {
-  /* marking */
+  /* Maybe fix  NULL ... */
+  for (obj_t *o = memory; o == NULL; o = o->meta.next) {
+    o->meta.marked = UNMARK;
+  }
 }
 
-void gc_sweep(obj_t **env)
+void gc_mark(obj_t **env)
 {
-  /* sweeping */
+  gc_clear_marked(env);
+
+  for (obj_t *e = (*env); e->type != T_NIL; e = e->cdr) {
+    if (e->type == T_NIL)
+      return;
+
+    e->car->meta.marked = MARK;
+  }
+}
+
+void gc_sweep()
+{
+  /* The first address of memory should not be NULL */
+  obj_t *v = memory;
+  obj_t *prev = NULL;
+
+  while (v->meta.next != NULL) {
+    if (v->meta.marked) {
+      if (prev != NULL)
+        prev->meta.next = v;
+
+      prev = v;
+    } else {
+      /* collected */
+    }
+
+    v = v->meta.next;
+  }
+
+  prev->meta.next = NULL;
 }
 
 void gc(obj_t **env)
 {
+  if (GC_LOCK)
+    return;
+
   gc_mark(env);
-  gc_sweep(env);
+  gc_sweep();
 }
 
 obj_t *allocate(obj_t **env, type_t type)
@@ -48,12 +84,19 @@ obj_t *allocate(obj_t **env, type_t type)
   obj_t *obj = (obj_t *)(memory + mem_used);
 
   /* GC always runs now */
-  if (1 || MEMORY_SIZE < (size + mem_used)) {
+  if (1 || MEMORY_SIZE < (size + mem_used))
     gc(env);
+
+  mem_used += size;
+  obj->type = type;
+  obj->meta.marked = UNMARK;
+  if (MEMORY_SIZE < mem_used) {
+    /* TODO fix when compaction */
+    obj->meta.next = NULL;
+  } else {
+    obj->meta.next = (obj_t *)(memory + mem_used);
   }
 
-  obj->type = type;
-  mem_used += size;
   return obj;
 }
 
@@ -131,9 +174,8 @@ void define_variable(obj_t **env, char *name, obj_t *value)
 obj_t *find_variable(obj_t *env, char *name)
 {
   for (; env->type != T_NIL; env = env->cdr) {
-    if (env->type == T_NIL) {
+    if (env->type == T_NIL)
       return NULL;
-    }
 
     obj_t *var = env->car;
 
@@ -253,15 +295,15 @@ void define_primitives(char *name, primitive_t *fn, obj_t **env)
 
 void initialize(obj_t **env)
 {
-  Symbol = NIL;
-
-  mem_used = 0;
+  GC_LOCK = 1;
   memory = allocate_space();
-
+  mem_used = 0;
+  Symbol = NIL;
   define_primitives("+", prim_plus, env);
   define_primitives("-", prim_minus, env);
   define_primitives("*", prim_mul, env);
   define_primitives("/", prim_div, env);
+  GC_LOCK = 0;
 }
 
 int main(int argc, char *argv[])
