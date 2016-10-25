@@ -66,7 +66,11 @@ void gc_sweep()
     v = v->meta.next;
   }
 
-  prev->meta.next = NULL;
+  if (v->meta.marked == MARK) {
+    prev->meta.next = v;
+  } else {
+    prev->meta.next = NULL;
+  }
 }
 
 void gc(obj_t **env)
@@ -286,6 +290,15 @@ obj_t *prim_div(struct obj_t **env, struct obj_t *args)
   return new_int(env, v);
 }
 
+obj_t *prim_progn(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *ret;
+  for (; args->type != T_NIL ; args = args->cdr) {
+    ret = eval(args->car, env);
+  }
+  return ret;
+}
+
 void define_primitives(char *name, primitive_t *fn, obj_t **env)
 {
   obj_t *prim = new_primitive(env, fn);
@@ -302,6 +315,7 @@ void initialize(obj_t **env)
   define_primitives("-", prim_minus, env);
   define_primitives("*", prim_mul, env);
   define_primitives("/", prim_div, env);
+  define_primitives("progn", prim_progn, env);
   GC_LOCK = 0;
 }
 

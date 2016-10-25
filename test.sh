@@ -64,3 +64,9 @@ eval_run mul "(* 2 1)" 2
 eval_run mul_3_args "(* 10 1 2)" 20
 eval_run div "(/ 2 1)" 2
 eval_run div_3_args "(/ 10 1 2)" 5
+
+eval_run progn '(progn 1)' 1
+eval_run progn2 '(progn (+ 1 2) 10)' 10
+eval_run progn2 '(progn 10 (+ 1 2))' 3
+eval_run progn3 '(progn 10 (* 1 2) (* 10 30))' 300
+eval_run progn3 '(progn 10 (* 1 2) (progn 1 (+ 10 20)))' 30
