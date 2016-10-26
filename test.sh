@@ -76,6 +76,19 @@ eval_run "greater than" "(> 10 11)" "()"
 eval_run "greater than" "(> 12 11 10)" "t"
 eval_run "greater than" "(>= 12 11 1)" "t"
 
+eval_run car "(car '(1 2 3))" 1
+eval_run car "(car '((1) 2 3))" "(1)"
+eval_run car "(car '((+ 2 1) 2 3))" "(+ 2 1)"
+eval_run cdr "(cdr '(1 2 3))" "(2 3)"
+eval_run cdr "(cdr '((1) 2 3))" "(2 3)"
+eval_run cdr "(cdr '((1) (+ 1 2) 3))" "((+ 1 2) 3)"
+eval_run cdr "(cdr '((1) (+ 1 2) 3 10 20 30))" "((+ 1 2) 3 10 20 30)"
+
+eval_run cons "(cons 1 '())" "(1)"
+eval_run cons "(cons (+ 1 2) '())" "(3)"
+eval_run cons2 "(cons 1 '(2 3))" "(1 2 3)"
+eval_run cons2 "(cons '(1 2) '(3 4))" "((1 2) 3 4)"
+
 eval_run quote "'(1 2 3)" "(1 2 3)"
 eval_run quote "'((2 3) 2 3)" "((2 3) 2 3)"
 eval_run quote "'(1 (+ 2 3) 4)" "(1 (+ 2 3) 4)"

@@ -366,6 +366,22 @@ obj_t *prim_div(struct obj_t **env, struct obj_t *args)
   return new_int(env, v);
 }
 
+obj_t *prim_car(struct obj_t **env, struct obj_t *args)
+{
+  return eval(args->car, env)->car;
+}
+
+obj_t *prim_cdr(struct obj_t **env, struct obj_t *args)
+{
+  return eval(args->car, env)->cdr;
+}
+
+obj_t *prim_cons(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *v = eval_list(args, env);
+  return new_cell(env, v->car, v->cdr->car);
+}
+
 obj_t *prim_quote(struct obj_t **env, struct obj_t *args)
 {
   return args->car;
@@ -430,6 +446,9 @@ void initialize(obj_t **env)
   define_primitives("<=", prim_lte, env);
   define_primitives(">", prim_gt, env);
   define_primitives(">=", prim_gt, env);
+  define_primitives("car", prim_car, env);
+  define_primitives("cdr", prim_cdr, env);
+  define_primitives("cons", prim_cons, env);
   define_primitives("quote", prim_quote, env);
   define_primitives("progn", prim_progn, env);
   define_primitives("let", prim_let, env);
