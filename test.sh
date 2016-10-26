@@ -65,6 +65,17 @@ eval_run mul_3_args "(* 10 1 2)" 20
 eval_run div "(/ 2 1)" 2
 eval_run div_3_args "(/ 10 1 2)" 5
 
+eval_run "equal int" "(= 10 10 10)" "t"
+eval_run "equal int" "(= 10 11 10)" "()"
+eval_run "less than" "(< 10 11)" "t"
+eval_run "less than" "(< 10 8)" "()"
+eval_run "less than" "(< 10 11 12)" "t"
+eval_run "less than" "(<= 10 10 12)" "t"
+eval_run "greater than" "(> 10 8)" "t"
+eval_run "greater than" "(> 10 11)" "()"
+eval_run "greater than" "(> 12 11 10)" "t"
+eval_run "greater than" "(>= 12 11 1)" "t"
+
 eval_run progn '(progn 1)' 1
 eval_run progn2 '(progn (+ 1 2) 10)' 10
 eval_run progn2 '(progn 10 (+ 1 2))' 3

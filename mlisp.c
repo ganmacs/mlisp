@@ -278,6 +278,75 @@ obj_t *prim_mul(struct obj_t **env, struct obj_t *args)
   return new_int(env, v);
 }
 
+obj_t *prim_equal(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nargs = eval_list(args, env);
+
+  int v = nargs->car->value;     /* MUST be number */
+  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (v != nargs->car->value)
+      return NIL;
+  }
+
+  return TRUE;
+}
+
+obj_t *prim_lt(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nargs = eval_list(args, env);
+  int v = nargs->car->value - 1;     /* TOFIX: -1 is hack for passing first loop as follow */
+  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (v >= nargs->car->value)
+      return NIL;
+
+    v = nargs->car->value;
+  }
+
+  return TRUE;
+}
+
+obj_t *prim_lte(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nargs = eval_list(args, env);
+  int v = nargs->car->value;
+  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (v > nargs->car->value)
+      return NIL;
+
+    v = nargs->car->value;
+  }
+
+  return TRUE;
+}
+
+obj_t *prim_gt(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nargs = eval_list(args, env);
+  int v = nargs->car->value + 1;     /* TOFIX: +1 is hack for passing first loop as follow */
+  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (v <= nargs->car->value)
+      return NIL;
+
+    v = nargs->car->value;
+  }
+
+  return TRUE;
+}
+
+obj_t *prim_gte(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nargs = eval_list(args, env);
+  int v = nargs->car->value + 1;
+  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (v < nargs->car->value)
+      return NIL;
+
+    v = nargs->car->value;
+  }
+
+  return TRUE;
+}
+
 obj_t *prim_div(struct obj_t **env, struct obj_t *args)
 {
   if (args->car->type != T_INT)
@@ -351,6 +420,11 @@ void initialize(obj_t **env)
   define_primitives("-", prim_minus, env);
   define_primitives("*", prim_mul, env);
   define_primitives("/", prim_div, env);
+  define_primitives("=", prim_equal, env);
+  define_primitives("<", prim_lt, env);
+  define_primitives("<=", prim_lte, env);
+  define_primitives(">", prim_gt, env);
+  define_primitives(">=", prim_gt, env);
   define_primitives("progn", prim_progn, env);
   define_primitives("let", prim_let, env);
   define_primitives("if", prim_if, env);
