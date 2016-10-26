@@ -1,7 +1,7 @@
 #include "mlisp.h"
 #include <sys/mman.h>
 
-obj_t *eval(obj_t *obj, obj_t **env);
+obj_t *eval(obj_t **env, obj_t *obj);
 
 static obj_t *NIL = &(obj_t) { T_NIL };
 static obj_t *TRUE = &(obj_t) { T_TRUE };
@@ -193,20 +193,20 @@ obj_t *find_variable(obj_t *env, char *name)
   return NULL;
 }
 
-obj_t *eval_list(obj_t *args, obj_t **env)
+obj_t *eval_list(obj_t **env, obj_t *args)
 {
   if (args->type == T_NIL)
     return NIL;
 
-  return new_cell(env, eval(args->car, env), eval_list(args->cdr, env));
+  return new_cell(env, eval(env, args->car), eval_list(env, args->cdr));
 }
 
-obj_t *apply(obj_t *fn, obj_t *args, obj_t **env)
+obj_t *apply(obj_t **env, obj_t *fn, obj_t *args)
 {
   return fn->fn(env, args);
 }
 
-obj_t *eval(obj_t *obj, obj_t **env)
+obj_t *eval(obj_t **env, obj_t *obj)
 {
   switch(obj->type) {
   case T_INT:
@@ -224,12 +224,12 @@ obj_t *eval(obj_t *obj, obj_t **env)
   }
   case T_CELL: {
     obj_t *fn = obj->car;
-    fn = eval(fn, env);
+    fn = eval(env, fn);
 
     if (fn->type != T_PRIMITIVE)
       error("The head of cons should be a function");
 
-    return apply(fn, obj->cdr, env);
+    return apply(env, fn, obj->cdr);
   }
   default:
     printf("%d\n", obj->type);
@@ -241,7 +241,7 @@ obj_t *eval(obj_t *obj, obj_t **env)
 obj_t *prim_plus(struct obj_t **env, struct obj_t *args)
 {
   int v = 0;
-  for (obj_t *nargs = eval_list(args, env); nargs->type != T_NIL; nargs = nargs->cdr) {
+  for (obj_t *nargs = eval_list(env, args); nargs->type != T_NIL; nargs = nargs->cdr) {
     if (nargs->car->type != T_INT)
       error("`+` is only used for int values");
     v += nargs->car->value;
@@ -256,7 +256,7 @@ obj_t *prim_minus(struct obj_t **env, struct obj_t *args)
     error("`-` is only used for int values");
   int v = args->car->value;
 
-  obj_t *nargs = eval_list(args, env);
+  obj_t *nargs = eval_list(env, args);
   for (obj_t *lst = nargs->cdr; lst->type != T_NIL;  lst = lst->cdr) {
     if (lst->car->type != T_INT)
       error("`-` is only used for int values");
@@ -269,7 +269,7 @@ obj_t *prim_minus(struct obj_t **env, struct obj_t *args)
 obj_t *prim_mul(struct obj_t **env, struct obj_t *args)
 {
   int v = 1;
-  for (obj_t *nargs = eval_list(args, env); nargs->type != T_NIL; nargs = nargs->cdr) {
+  for (obj_t *nargs = eval_list(env, args); nargs->type != T_NIL; nargs = nargs->cdr) {
     if (nargs->car->type != T_INT)
       error("`*` is only used for int values");
     v *= nargs->car->value;
@@ -280,7 +280,7 @@ obj_t *prim_mul(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_equal(struct obj_t **env, struct obj_t *args)
 {
-  obj_t *nargs = eval_list(args, env);
+  obj_t *nargs = eval_list(env, args);
 
   int v = nargs->car->value;     /* MUST be number */
   for (; nargs->type != T_NIL; nargs = nargs->cdr) {
@@ -293,7 +293,7 @@ obj_t *prim_equal(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_lt(struct obj_t **env, struct obj_t *args)
 {
-  obj_t *nargs = eval_list(args, env);
+  obj_t *nargs = eval_list(env, args);
   int v = nargs->car->value - 1;     /* TOFIX: -1 is hack for passing first loop as follow */
   for (; nargs->type != T_NIL; nargs = nargs->cdr) {
     if (v >= nargs->car->value)
@@ -307,7 +307,7 @@ obj_t *prim_lt(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_lte(struct obj_t **env, struct obj_t *args)
 {
-  obj_t *nargs = eval_list(args, env);
+  obj_t *nargs = eval_list(env, args);
   int v = nargs->car->value;
   for (; nargs->type != T_NIL; nargs = nargs->cdr) {
     if (v > nargs->car->value)
@@ -321,7 +321,7 @@ obj_t *prim_lte(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_gt(struct obj_t **env, struct obj_t *args)
 {
-  obj_t *nargs = eval_list(args, env);
+  obj_t *nargs = eval_list(env, args);
   int v = nargs->car->value + 1;     /* TOFIX: +1 is hack for passing first loop as follow */
   for (; nargs->type != T_NIL; nargs = nargs->cdr) {
     if (v <= nargs->car->value)
@@ -335,7 +335,7 @@ obj_t *prim_gt(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_gte(struct obj_t **env, struct obj_t *args)
 {
-  obj_t *nargs = eval_list(args, env);
+  obj_t *nargs = eval_list(env, args);
   int v = nargs->car->value + 1;
   for (; nargs->type != T_NIL; nargs = nargs->cdr) {
     if (v < nargs->car->value)
@@ -353,7 +353,7 @@ obj_t *prim_div(struct obj_t **env, struct obj_t *args)
     error("`/` is only used for int values");
   int v = args->car->value;
 
-  obj_t *nargs = eval_list(args, env);
+  obj_t *nargs = eval_list(env, args);
   for (obj_t *lst = nargs->cdr; lst->type != T_NIL;  lst = lst->cdr) {
     if (lst->car->type == T_INT && lst->car->value == 0) {
       error("Error: divided by 0");
@@ -368,17 +368,17 @@ obj_t *prim_div(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_car(struct obj_t **env, struct obj_t *args)
 {
-  return eval(args->car, env)->car;
+  return eval(env, args->car)->car;
 }
 
 obj_t *prim_cdr(struct obj_t **env, struct obj_t *args)
 {
-  return eval(args->car, env)->cdr;
+  return eval(env, args->car)->cdr;
 }
 
 obj_t *prim_cons(struct obj_t **env, struct obj_t *args)
 {
-  obj_t *v = eval_list(args, env);
+  obj_t *v = eval_list(env, args);
   return new_cell(env, v->car, v->cdr->car);
 }
 
@@ -391,7 +391,7 @@ obj_t *prim_progn(struct obj_t **env, struct obj_t *args)
 {
   obj_t *ret;
   for (; args->type != T_NIL ; args = args->cdr) {
-    ret = eval(args->car, env);
+    ret = eval(env, args->car);
   }
   return ret;
 }
@@ -411,23 +411,23 @@ obj_t *prim_let(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_if(struct obj_t **env, struct obj_t *args)
 {
-  obj_t *cond = eval(args->car, env);
+  obj_t *cond = eval(env, args->car);
 
   if (cond->type == T_NIL) {
     if (args->cdr->cdr->type == T_NIL)  /* without false clause */
       return NIL;
 
     obj_t *false_clause = args->cdr->cdr->car;
-    return eval(false_clause, env);
+    return eval(env, false_clause);
   } else {
     obj_t *true_clause = args->cdr->car;
-    return eval(true_clause, env);
+    return eval(env, true_clause);
   }
 }
 
 obj_t *prim_define(struct obj_t **env, struct obj_t *args)
 {
-  obj_t *val = eval(args->cdr->car, env);
+  obj_t *val = eval(env, args->cdr->car);
   define_variable(env, args->car->name, val);
   return NIL;
 }
@@ -479,7 +479,7 @@ int main(int argc, char *argv[])
   obj_t *obj = allocation(&env, node);
 
   if (get_env_flag("MLISP_EVAL_TEST")) {
-    print_obj(eval(obj, &env));
+    print_obj(eval(&env, obj));
     return 0;
   }
 
