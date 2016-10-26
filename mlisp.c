@@ -425,6 +425,13 @@ obj_t *prim_if(struct obj_t **env, struct obj_t *args)
   }
 }
 
+obj_t *prim_define(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *val = eval(args->cdr->car, env);
+  define_variable(env, args->car->name, val);
+  return NIL;
+}
+
 void define_primitives(char *name, primitive_t *fn, obj_t **env)
 {
   obj_t *prim = new_primitive(env, fn);
@@ -453,6 +460,7 @@ void initialize(obj_t **env)
   define_primitives("progn", prim_progn, env);
   define_primitives("let", prim_let, env);
   define_primitives("if", prim_if, env);
+  define_primitives("define", prim_define, env);
   GC_LOCK = 0;
 }
 

@@ -109,3 +109,8 @@ eval_run if "(if () 1)" "()"
 eval_run if "(if () (+ 1 2) (+ 2 3))" 5
 eval_run if "(if t (progn 20 (+ (+ 1 2) (+ 1 2))) (+ 2 3))" 6
 eval_run if "(if () (+ 1 2) (+ 2 3) (+ 2 3))" 5
+
+eval_run define '(define x 7)' '()'
+eval_run define '(progn (define x 7) x)' 7
+eval_run varible '(progn (define x 7) (+ x 10))' 17
+eval_run varible '(progn (define x 7) (define y 10) (+ x y))' 17
