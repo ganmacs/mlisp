@@ -74,3 +74,10 @@ eval_run progn3 '(progn 10 (* 1 2) (progn 1 (+ 10 20)))' 30
 eval_run let '(let ((x 10)) (+ 10 x))' 20
 eval_run let2 '(let ((x 10) (y 20)) (+ y 10 x))' 40
 eval_run let2 '(let ((x 10) (y 20)) (progn (+ y 10 x) (* y x)))' 200
+
+eval_run if "(if 1 1)" 1
+eval_run if "(if () 1 3)" 3
+eval_run if "(if () 1)" "()"
+eval_run if "(if () (+ 1 2) (+ 2 3))" 5
+eval_run if "(if t (progn 20 (+ (+ 1 2) (+ 1 2))) (+ 2 3))" 6
+eval_run if "(if () (+ 1 2) (+ 2 3) (+ 2 3))" 5

@@ -4,6 +4,7 @@
 obj_t *eval(obj_t *obj, obj_t **env);
 
 static obj_t *NIL = &(obj_t) { T_NIL };
+static obj_t *TRUE = &(obj_t) { T_TRUE };
 obj_t *Symbol;
 
 size_t mem_used;
@@ -162,6 +163,8 @@ obj_t *allocation(obj_t **env, node_t *node)
     return new_cell(env, allocation(env, node->car), allocation(env, node->cdr));
   case NODE_NIL:
     return NIL;
+  case NODE_TRUE:
+    return TRUE;
   default:
     error("Not implemneted yet");
     return NULL;
@@ -208,6 +211,10 @@ obj_t *eval(obj_t *obj, obj_t **env)
   switch(obj->type) {
   case T_INT:
     return obj;
+  case T_NIL:
+    return NIL;
+  case T_TRUE:
+    return TRUE;
   case T_SYMBOL: {
     obj_t *primitve = find_variable(*env, obj->name);
     if (primitve == NULL)
@@ -312,6 +319,22 @@ obj_t *prim_let(struct obj_t **env, struct obj_t *args)
   return prim_progn(&nenv, args->cdr);
 }
 
+obj_t *prim_if(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *cond = eval(args->car, env);
+
+  if (cond->type == T_NIL) {
+    if (args->cdr->cdr->type == T_NIL)  /* without false clause */
+      return NIL;
+
+    obj_t *false_clause = args->cdr->cdr->car;
+    return eval(false_clause, env);
+  } else {
+    obj_t *true_clause = args->cdr->car;
+    return eval(true_clause, env);
+  }
+}
+
 void define_primitives(char *name, primitive_t *fn, obj_t **env)
 {
   obj_t *prim = new_primitive(env, fn);
@@ -330,6 +353,7 @@ void initialize(obj_t **env)
   define_primitives("/", prim_div, env);
   define_primitives("progn", prim_progn, env);
   define_primitives("let", prim_let, env);
+  define_primitives("if", prim_if, env);
   GC_LOCK = 0;
 }
 
