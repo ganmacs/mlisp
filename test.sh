@@ -76,6 +76,10 @@ eval_run "greater than" "(> 10 11)" "()"
 eval_run "greater than" "(> 12 11 10)" "t"
 eval_run "greater than" "(>= 12 11 1)" "t"
 
+eval_run quote "'(1 2 3)" "(1 2 3)"
+eval_run quote "'((2 3) 2 3)" "((2 3) 2 3)"
+eval_run quote "'(1 (+ 2 3) 4)" "(1 (+ 2 3) 4)"
+
 eval_run progn '(progn 1)' 1
 eval_run progn2 '(progn (+ 1 2) 10)' 10
 eval_run progn2 '(progn 10 (+ 1 2))' 3

@@ -366,6 +366,11 @@ obj_t *prim_div(struct obj_t **env, struct obj_t *args)
   return new_int(env, v);
 }
 
+obj_t *prim_quote(struct obj_t **env, struct obj_t *args)
+{
+  return args->car;
+}
+
 obj_t *prim_progn(struct obj_t **env, struct obj_t *args)
 {
   obj_t *ret;
@@ -425,6 +430,7 @@ void initialize(obj_t **env)
   define_primitives("<=", prim_lte, env);
   define_primitives(">", prim_gt, env);
   define_primitives(">=", prim_gt, env);
+  define_primitives("quote", prim_quote, env);
   define_primitives("progn", prim_progn, env);
   define_primitives("let", prim_let, env);
   define_primitives("if", prim_if, env);
