@@ -460,7 +460,7 @@ obj_t *prim_define(struct obj_t **env, struct obj_t *args)
 {
   obj_t *val = eval(env, args->cdr->car);
   define_variable(env, args->car->name, val);
-  return NIL;
+  return val;
 }
 
 
