@@ -114,3 +114,8 @@ eval_run define '(define x 7)' '()'
 eval_run define '(progn (define x 7) x)' 7
 eval_run varible '(progn (define x 7) (+ x 10))' 17
 eval_run varible '(progn (define x 7) (define y 10) (+ x y))' 17
+
+eval_run lambda '((lambda (x) (+ x 1)) 10)' 11
+eval_run lambda2 '((lambda (x y) (+ x 1 y)) 10 20)' 31
+eval_run lambda_with_lambda '((lambda (f1 f2) (f2 (f1 10) (f1 20))) (lambda (x) x) (lambda (x y) (* x y)))' 200
+

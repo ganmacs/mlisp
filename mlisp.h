@@ -71,6 +71,12 @@ typedef struct obj_t {
 
     primitive_t *fn;            /* store primitive (function) */
 
+    struct {
+      struct obj_t *args;
+      struct obj_t *body;
+      struct obj_t **env;
+    };
+
     struct {                    /* store cell */
       struct obj_t *car;
       struct obj_t *cdr;

@@ -2,6 +2,7 @@
 #include <sys/mman.h>
 
 obj_t *eval(obj_t **env, obj_t *obj);
+obj_t *prim_progn(struct obj_t **env, struct obj_t *args);
 
 static obj_t *NIL = &(obj_t) { T_NIL };
 static obj_t *TRUE = &(obj_t) { T_TRUE };
@@ -134,6 +135,15 @@ obj_t *new_cell(obj_t **env, obj_t *car, obj_t *cdr)
   return obj;
 }
 
+obj_t *new_function(obj_t **env, obj_t *args, obj_t *body)
+{
+  obj_t *obj = allocate(env, T_FUNCTION);
+  obj->args = args;
+  obj->body = body;
+  obj->env = env;
+  return obj;
+}
+
 obj_t *intern(obj_t **env, char *name)
 {
   for (obj_t *s = Symbol; s->type == T_NIL; s = s->cdr) {
@@ -201,9 +211,38 @@ obj_t *eval_list(obj_t **env, obj_t *args)
   return new_cell(env, eval(env, args->car), eval_list(env, args->cdr));
 }
 
+obj_t *apply_function(obj_t **env, obj_t *fn, obj_t *args)
+{
+  obj_t *nenv = *env;
+  obj_t *sym = NIL, *val = NIL;
+  for (obj_t *largs = args; largs->type != T_NIL; largs = largs->cdr) {
+    sym = intern(env, largs->car->car->name);
+    val = new_cell(env, sym, largs->car->cdr->car);
+    nenv = new_cell(env, val, nenv);
+  }
+
+  return prim_progn(&nenv, fn);
+}
+
 obj_t *apply(obj_t **env, obj_t *fn, obj_t *args)
 {
-  return fn->fn(env, args);
+  if (fn->type == T_PRIMITIVE) {
+    return fn->fn(env, args);
+  } else if (fn->type == T_FUNCTION){
+    obj_t *nargs = eval_list(env, args);
+    obj_t *e = new_cell(env, *fn->env, *env);
+
+    obj_t *args_and_values = NIL;
+    for (obj_t *vargs = fn->args; vargs->type != T_NIL && nargs->type != T_NIL; vargs = vargs->cdr, nargs = nargs->cdr) {
+      obj_t *ne = new_cell(env, vargs->car, new_cell(env, nargs->car, NIL));
+      args_and_values = new_cell(env, ne, args_and_values);
+    }
+
+    return apply_function(&e, fn->body, args_and_values);
+  } else {
+    error("not implemneted");
+    return NULL;
+  }
 }
 
 obj_t *eval(obj_t **env, obj_t *obj)
@@ -226,7 +265,7 @@ obj_t *eval(obj_t **env, obj_t *obj)
     obj_t *fn = obj->car;
     fn = eval(env, fn);
 
-    if (fn->type != T_PRIMITIVE)
+    if (fn->type != T_PRIMITIVE && fn->type != T_FUNCTION)
       error("The head of cons should be a function");
 
     return apply(env, fn, obj->cdr);
@@ -432,6 +471,17 @@ obj_t *prim_define(struct obj_t **env, struct obj_t *args)
   return NIL;
 }
 
+
+obj_t *prim_lambda(struct obj_t **env, struct obj_t *args)
+{
+  for (obj_t *nargs = args->car; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (nargs->car->type != T_SYMBOL)
+      error("Parameter should be a symbol");
+  }
+
+  return new_function(env, args->car, args->cdr);
+}
+
 void define_primitives(char *name, primitive_t *fn, obj_t **env)
 {
   obj_t *prim = new_primitive(env, fn);
@@ -459,6 +509,7 @@ void initialize(obj_t **env)
   define_primitives("quote", prim_quote, env);
   define_primitives("progn", prim_progn, env);
   define_primitives("let", prim_let, env);
+  define_primitives("lambda", prim_lambda, env);
   define_primitives("if", prim_if, env);
   define_primitives("define", prim_define, env);
   GC_LOCK = 0;
