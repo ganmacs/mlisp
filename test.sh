@@ -89,6 +89,10 @@ eval_run cons "(cons (+ 1 2) '())" "(3)"
 eval_run cons2 "(cons 1 '(2 3))" "(1 2 3)"
 eval_run cons2 "(cons '(1 2) '(3 4))" "((1 2) 3 4)"
 
+eval_run list "(list 2 3))" "(2 3)"
+eval_run list "(list (+ 2 3) '(2))" "(5 (2))"
+eval_run list "(list '(1 2) '(3 4))" "((1 2) (3 4))"
+
 eval_run quote "'(1 2 3)" "(1 2 3)"
 eval_run quote "'((2 3) 2 3)" "((2 3) 2 3)"
 eval_run quote "'(1 (+ 2 3) 4)" "(1 (+ 2 3) 4)"

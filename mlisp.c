@@ -485,6 +485,14 @@ obj_t *prim_lambda(struct obj_t **env, struct obj_t *args)
   return new_function(env, args->car, args->cdr);
 }
 
+obj_t *prim_list(struct obj_t **env, struct obj_t *args)
+{
+  if (args->type == T_NIL)
+    return args;
+
+  return new_cell(env, eval(env, args->car), prim_list(env, args->cdr));
+}
+
 void define_primitives(char *name, primitive_t *fn, obj_t **env)
 {
   obj_t *prim = new_primitive(env, fn);
@@ -509,6 +517,7 @@ void initialize(obj_t **env)
   define_primitives("car", prim_car, env);
   define_primitives("cdr", prim_cdr, env);
   define_primitives("cons", prim_cons, env);
+  define_primitives("list", prim_list, env);
   define_primitives("quote", prim_quote, env);
   define_primitives("progn", prim_progn, env);
   define_primitives("let", prim_let, env);
