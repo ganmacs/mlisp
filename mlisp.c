@@ -233,6 +233,19 @@ obj_t *apply_function(obj_t **env, obj_t *fn, obj_t *args)
   return prim_progn(&nenv, fn);
 }
 
+obj_t *apply_macro(obj_t **env, obj_t *fn, obj_t *args)
+{
+  obj_t *nenv = *env;
+  obj_t *sym = NIL, *val = NIL;
+  for (obj_t *largs = args; largs->type != T_NIL; largs = largs->cdr) {
+    sym = intern(env, largs->car->car->name);
+    val = new_cell(env, sym, largs->car->cdr->car);
+    nenv = new_cell(env, val, nenv);
+  }
+
+  return prim_progn(&nenv, fn);
+}
+
 /*
   ((a b c d) (1 2 3 4)) => ((a 1) (b 2) (c 3) (d 4))
 */
@@ -270,8 +283,8 @@ obj_t *macroexpand(obj_t **env, obj_t *obj)
   if (val == NULL || val->type != T_MACRO)
     return obj;
 
-  obj_t *nargs = transpose(env, val->args, eval_list(env, obj->cdr));
-  return apply_function(env, val->body, nargs);
+  obj_t *nargs = transpose(env, val->args, obj->cdr);
+  return apply_macro(env, val->body, nargs);
 }
 
 obj_t *eval(obj_t **env, obj_t *obj)
@@ -535,6 +548,11 @@ obj_t *prim_defmacro(struct obj_t **env, struct obj_t *args)
   return NIL;
 }
 
+obj_t *prim_macroexpand(struct obj_t **env, struct obj_t *args)
+{
+  return macroexpand(env, eval(env, args->car));
+}
+
 void define_primitives(char *name, primitive_t *fn, obj_t **env)
 {
   obj_t *prim = new_primitive(env, fn);
@@ -568,6 +586,7 @@ void initialize(obj_t **env)
   define_primitives("define", prim_define, env);
   define_primitives("defun", prim_defun, env);
   define_primitives("defmacro", prim_defmacro, env);
+  define_primitives("macroexpand", prim_macroexpand, env);
   GC_LOCK = 0;
 }
 
