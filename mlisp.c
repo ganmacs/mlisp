@@ -144,6 +144,15 @@ obj_t *new_function(obj_t **env, obj_t *args, obj_t *body)
   return obj;
 }
 
+obj_t *new_macro(obj_t **env, obj_t *args, obj_t *body)
+{
+  obj_t *obj = allocate(env, T_MACRO);
+  obj->args = args;
+  obj->body = body;
+  obj->env = env;
+  return obj;
+}
+
 obj_t *intern(obj_t **env, char *name)
 {
   for (obj_t *s = Symbol; s->type == T_NIL; s = s->cdr) {
@@ -224,25 +233,45 @@ obj_t *apply_function(obj_t **env, obj_t *fn, obj_t *args)
   return prim_progn(&nenv, fn);
 }
 
+/*
+  ((a b c d) (1 2 3 4)) => ((a 1) (b 2) (c 3) (d 4))
+*/
+obj_t *transpose(obj_t **env, obj_t *l, obj_t* r)
+{
+  obj_t *ret = NIL;
+  for (; l->type != T_NIL && r->type != T_NIL; l = l->cdr, r = r->cdr) {
+    obj_t *ne = new_cell(env, l->car, new_cell(env, r->car, ret));
+    ret = new_cell(env, ne, ret);
+  }
+  return ret;
+}
+
 obj_t *apply(obj_t **env, obj_t *fn, obj_t *args)
 {
   if (fn->type == T_PRIMITIVE) {
     return fn->fn(env, args);
   } else if (fn->type == T_FUNCTION){
-    obj_t *nargs = eval_list(env, args);
     obj_t *e = new_cell(env, *fn->env, *env);
-
-    obj_t *args_and_values = NIL;
-    for (obj_t *vargs = fn->args; vargs->type != T_NIL && nargs->type != T_NIL; vargs = vargs->cdr, nargs = nargs->cdr) {
-      obj_t *ne = new_cell(env, vargs->car, new_cell(env, nargs->car, NIL));
-      args_and_values = new_cell(env, ne, args_and_values);
-    }
-
-    return apply_function(&e, fn->body, args_and_values);
+    obj_t *nargs = transpose(env, fn->args, eval_list(env, args));
+    return apply_function(&e, fn->body, nargs);
   } else {
     error("not implemneted");
     return NULL;
   }
+}
+
+obj_t *macroexpand(obj_t **env, obj_t *obj)
+{
+  if (obj->type != T_CELL || obj->car->type != T_SYMBOL)
+    return obj;
+
+  obj_t *val = find_variable(*env, obj->car->name);
+
+  if (val == NULL || val->type != T_MACRO)
+    return obj;
+
+  obj_t *nargs = transpose(env, val->args, eval_list(env, obj->cdr));
+  return apply_function(env, val->body, nargs);
 }
 
 obj_t *eval(obj_t **env, obj_t *obj)
@@ -267,6 +296,10 @@ obj_t *eval(obj_t **env, obj_t *obj)
   case T_CELL: {
     obj_t *fn = obj->car;
     fn = eval(env, fn);
+
+    obj_t *expanded = macroexpand(env, obj);
+    if (expanded != obj)
+      return eval(env, expanded);
 
     if (fn->type != T_PRIMITIVE && fn->type != T_FUNCTION)
       error("The head of cons should be a function");
@@ -493,6 +526,15 @@ obj_t *prim_list(struct obj_t **env, struct obj_t *args)
   return new_cell(env, eval(env, args->car), prim_list(env, args->cdr));
 }
 
+obj_t *prim_defmacro(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *vargs = args->cdr->car;
+  obj_t *body = args->cdr->cdr;
+  obj_t *fn = new_macro(env, vargs, body);
+  define_variable(env, args->car->name, fn);
+  return NIL;
+}
+
 void define_primitives(char *name, primitive_t *fn, obj_t **env)
 {
   obj_t *prim = new_primitive(env, fn);
@@ -525,6 +567,7 @@ void initialize(obj_t **env)
   define_primitives("if", prim_if, env);
   define_primitives("define", prim_define, env);
   define_primitives("defun", prim_defun, env);
+  define_primitives("defmacro", prim_defmacro, env);
   GC_LOCK = 0;
 }
 

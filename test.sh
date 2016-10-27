@@ -125,6 +125,9 @@ eval_run lambda2 '((lambda (x y) (+ x 1 y)) 10 20)' 31
 eval_run defun '(progn (defun fn (x y) (+ x y)) (fn 10 20))' 30
 eval_run defun '(progn (defun fn (x y) (+ x y)) (defun fn2 (x y) (+ x y)) (fn (fn 1 2) (fn2 1 2)))' 6
 
+eval_run defmacro "(progn (defmacro square (x) (list '* x x)) (square 10))" 100
+eval_run defmacro "(progn (defmacro unless (c then else) (list 'if c else then)) (unless 10 (+ 2 2) (+ 2 3)))" 5
+
 eval_run let_lambda '(let ((fn (lambda (x) (+ x 1)))) (fn 10))' 11
 eval_run let_labmda2 '(let ((v (+ 1 20)) (f (lambda (x) (+ x 10)))) (f v))' 31
 eval_run closure '(let ((c 10)) (let ((f (lambda (x) (+ c x)))) (f 10)))' 20

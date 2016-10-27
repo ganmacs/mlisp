@@ -39,6 +39,7 @@ typedef enum {
   T_INT,
   T_SYMBOL,
   T_PRIMITIVE,
+  T_MACRO,
   T_FUNCTION,
   T_CELL,
   T_MOVED,

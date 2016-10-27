@@ -54,6 +54,9 @@ void _print_obj(obj_t *obj)
   case T_FUNCTION:
     printf("(fn () <function>)");
     return;
+  case T_MACRO:
+    printf("(fn () <macro>)");
+    return;
   case T_CELL:
     printf("(");
     _print_obj(obj->car);
