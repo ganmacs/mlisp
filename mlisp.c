@@ -217,7 +217,7 @@ obj_t *apply_function(obj_t **env, obj_t *fn, obj_t *args)
   obj_t *sym = NIL, *val = NIL;
   for (obj_t *largs = args; largs->type != T_NIL; largs = largs->cdr) {
     sym = intern(env, largs->car->car->name);
-    val = new_cell(env, sym, largs->car->cdr->car);
+    val = new_cell(env, sym, eval(env, largs->car->cdr->car));
     nenv = new_cell(env, val, nenv);
   }
 
@@ -254,6 +254,9 @@ obj_t *eval(obj_t **env, obj_t *obj)
     return NIL;
   case T_TRUE:
     return TRUE;
+  case T_FUNCTION:
+  case T_PRIMITIVE:
+    return obj;
   case T_SYMBOL: {
     obj_t *primitve = find_variable(*env, obj->name);
     if (primitve == NULL)

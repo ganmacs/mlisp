@@ -117,7 +117,12 @@ eval_run varible '(progn (define x 7) (define y 10) (+ x y))' 17
 
 eval_run lambda '((lambda (x) (+ x 1)) 10)' 11
 eval_run lambda2 '((lambda (x y) (+ x 1 y)) 10 20)' 31
-eval_run lambda_with_lambda '((lambda (f1 f2) (f2 (f1 10) (f1 20))) (lambda (x) x) (lambda (x y) (* x y)))' 200
 
 eval_run defun '(progn (defun fn (x y) (+ x y)) (fn 10 20))' 30
 eval_run defun '(progn (defun fn (x y) (+ x y)) (defun fn2 (x y) (+ x y)) (fn (fn 1 2) (fn2 1 2)))' 6
+
+eval_run let_lambda '(let ((fn (lambda (x) (+ x 1)))) (fn 10))' 11
+eval_run let_labmda2 '(let ((v (+ 1 20)) (f (lambda (x) (+ x 10)))) (f v))' 31
+eval_run closure '(let ((c 10)) (let ((f (lambda (x) (+ c x)))) (f 10)))' 20
+eval_run closure2 '(let ((c 10)) (let ((f (lambda (x) (+ x c)))) (let ((a (lambda (y) (f y)))) (a 20))))' 30
+eval_run lambda_with_lambda '((lambda (f1 f2) (f2 (f1 10) (f1 20))) (lambda (x) x) (lambda (x y) (* x y)))' 200
