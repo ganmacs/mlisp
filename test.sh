@@ -119,3 +119,5 @@ eval_run lambda '((lambda (x) (+ x 1)) 10)' 11
 eval_run lambda2 '((lambda (x y) (+ x 1 y)) 10 20)' 31
 eval_run lambda_with_lambda '((lambda (f1 f2) (f2 (f1 10) (f1 20))) (lambda (x) x) (lambda (x y) (* x y)))' 200
 
+eval_run defun '(progn (defun fn (x y) (+ x y)) (fn 10 20))' 30
+eval_run defun '(progn (defun fn (x y) (+ x y)) (defun fn2 (x y) (+ x y)) (fn (fn 1 2) (fn2 1 2)))' 6

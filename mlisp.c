@@ -463,6 +463,14 @@ obj_t *prim_define(struct obj_t **env, struct obj_t *args)
   return val;
 }
 
+obj_t *prim_defun(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *vargs = args->cdr->car;
+  obj_t *body = args->cdr->cdr;
+  obj_t *fn = new_function(env, vargs, body);
+  define_variable(env, args->car->name, fn);
+  return NIL;
+}
 
 obj_t *prim_lambda(struct obj_t **env, struct obj_t *args)
 {
@@ -504,6 +512,7 @@ void initialize(obj_t **env)
   define_primitives("lambda", prim_lambda, env);
   define_primitives("if", prim_if, env);
   define_primitives("define", prim_define, env);
+  define_primitives("defun", prim_defun, env);
   GC_LOCK = 0;
 }
 
