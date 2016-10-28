@@ -603,11 +603,13 @@ int main(int argc, char *argv[])
 
   initialize(&env);
   obj_t *obj = allocation(&env, node);
+  obj_t *ret = eval(&env, obj);
 
   if (get_env_flag("MLISP_EVAL_TEST")) {
-    print_obj(eval(&env, obj));
+    print_obj(ret);
     return 0;
   }
 
+  print_obj(ret);
   return 0;
 }
