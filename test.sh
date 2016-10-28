@@ -60,6 +60,7 @@ eval_run plus "(+ 1 2)" 3
 eval_run add_3_args "(+ 1 2 10)" 13
 eval_run minus "(- 2 1)" 1
 eval_run minus_3_args "(- 10 1 2)" 7
+eval_run minus_3_args "(- (+ 1 2) 1 2)" 0
 eval_run mul "(* 2 1)" 2
 eval_run mul_3_args "(* 10 1 2)" 20
 eval_run div "(/ 2 1)" 2

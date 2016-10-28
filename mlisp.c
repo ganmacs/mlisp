@@ -199,13 +199,12 @@ void define_variable(obj_t **env, char *name, obj_t *value)
 
 obj_t *find_variable(obj_t *env, char *name)
 {
+  if (env->type == T_NIL)
+    return NULL;
+
   for (; env->type != T_NIL; env = env->cdr) {
-    if (env->type == T_NIL)
-      return NULL;
-
     obj_t *var = env->car;
-
-    if (strcmp(var->car->name, name) == 0)
+    if (var->car->type == T_SYMBOL && strcmp(var->car->name, name) == 0)
       return var->cdr;
   }
 
@@ -220,29 +219,31 @@ obj_t *eval_list(obj_t **env, obj_t *args)
   return new_cell(env, eval(env, args->car), eval_list(env, args->cdr));
 }
 
+/*
+ * e.g) args = ((a 10) (b 20))
+ */
 obj_t *apply_function(obj_t **env, obj_t *fn, obj_t *args)
 {
   obj_t *nenv = *env;
-  obj_t *sym = NIL, *val = NIL;
-  for (obj_t *largs = args; largs->type != T_NIL; largs = largs->cdr) {
-    sym = intern(env, largs->car->car->name);
-    val = new_cell(env, sym, eval(env, largs->car->cdr->car));
+  obj_t *val = NIL, *arg = NIL;
+  for (; args->type != T_NIL; args = args->cdr) {
+    arg = args->car;
+    val = new_cell(env, intern(env, arg->car->name), eval(env, arg->cdr->car));
     nenv = new_cell(env, val, nenv);
   }
-
   return prim_progn(&nenv, fn);
 }
 
 obj_t *apply_macro(obj_t **env, obj_t *fn, obj_t *args)
 {
   obj_t *nenv = *env;
-  obj_t *sym = NIL, *val = NIL;
-  for (obj_t *largs = args; largs->type != T_NIL; largs = largs->cdr) {
-    sym = intern(env, largs->car->car->name);
-    val = new_cell(env, sym, largs->car->cdr->car);
+  obj_t *val = NIL, *arg = NIL;
+  for (; args->type != T_NIL; args = args->cdr) {
+    arg = args->car;
+    /* Macro doesn't call eval to its args */
+    val = new_cell(env, intern(env, arg->car->name), arg->cdr->car);
     nenv = new_cell(env, val, nenv);
   }
-
   return prim_progn(&nenv, fn);
 }
 
@@ -251,9 +252,9 @@ obj_t *apply_macro(obj_t **env, obj_t *fn, obj_t *args)
 */
 obj_t *transpose(obj_t **env, obj_t *l, obj_t* r)
 {
-  obj_t *ret = NIL;
+  obj_t *ret = NIL, *ne = NIL;
   for (; l->type != T_NIL && r->type != T_NIL; l = l->cdr, r = r->cdr) {
-    obj_t *ne = new_cell(env, l->car, new_cell(env, r->car, ret));
+    ne = new_cell(env, l->car, new_cell(env, r->car, ret));
     ret = new_cell(env, ne, ret);
   }
   return ret;
@@ -268,7 +269,7 @@ obj_t *apply(obj_t **env, obj_t *fn, obj_t *args)
     obj_t *nargs = transpose(env, fn->args, eval_list(env, args));
     return apply_function(&e, fn->body, nargs);
   } else {
-    error("not implemneted");
+    error("Not supported yet");
     return NULL;
   }
 }
@@ -279,7 +280,6 @@ obj_t *macroexpand(obj_t **env, obj_t *obj)
     return obj;
 
   obj_t *val = find_variable(*env, obj->car->name);
-
   if (val == NULL || val->type != T_MACRO)
     return obj;
 
@@ -340,18 +340,15 @@ obj_t *prim_plus(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_minus(struct obj_t **env, struct obj_t *args)
 {
-  if (args->car->type != T_INT)
-    error("`-` is only used for int values");
-  int v = args->car->value;
-
   obj_t *nargs = eval_list(env, args);
-  for (obj_t *lst = nargs->cdr; lst->type != T_NIL;  lst = lst->cdr) {
+  int v = 0;
+  /* v1 - v2 - v3 = 0 - v1 - v2 - v3 + (v1 * 2) */
+  for (obj_t *lst = nargs; lst->type != T_NIL; lst = lst->cdr) {
     if (lst->car->type != T_INT)
       error("`-` is only used for int values");
     v -= lst->car->value;
   }
-
-  return new_int(env, v);
+  return new_int(env, v + (nargs->car->value * 2));
 }
 
 obj_t *prim_mul(struct obj_t **env, struct obj_t *args)
@@ -366,74 +363,6 @@ obj_t *prim_mul(struct obj_t **env, struct obj_t *args)
   return new_int(env, v);
 }
 
-obj_t *prim_equal(struct obj_t **env, struct obj_t *args)
-{
-  obj_t *nargs = eval_list(env, args);
-
-  int v = nargs->car->value;     /* MUST be number */
-  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
-    if (v != nargs->car->value)
-      return NIL;
-  }
-
-  return TRUE;
-}
-
-obj_t *prim_lt(struct obj_t **env, struct obj_t *args)
-{
-  obj_t *nargs = eval_list(env, args);
-  int v = nargs->car->value - 1;     /* TOFIX: -1 is hack for passing first loop as follow */
-  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
-    if (v >= nargs->car->value)
-      return NIL;
-
-    v = nargs->car->value;
-  }
-
-  return TRUE;
-}
-
-obj_t *prim_lte(struct obj_t **env, struct obj_t *args)
-{
-  obj_t *nargs = eval_list(env, args);
-  int v = nargs->car->value;
-  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
-    if (v > nargs->car->value)
-      return NIL;
-
-    v = nargs->car->value;
-  }
-
-  return TRUE;
-}
-
-obj_t *prim_gt(struct obj_t **env, struct obj_t *args)
-{
-  obj_t *nargs = eval_list(env, args);
-  int v = nargs->car->value + 1;     /* TOFIX: +1 is hack for passing first loop as follow */
-  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
-    if (v <= nargs->car->value)
-      return NIL;
-
-    v = nargs->car->value;
-  }
-
-  return TRUE;
-}
-
-obj_t *prim_gte(struct obj_t **env, struct obj_t *args)
-{
-  obj_t *nargs = eval_list(env, args);
-  int v = nargs->car->value + 1;
-  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
-    if (v < nargs->car->value)
-      return NIL;
-
-    v = nargs->car->value;
-  }
-
-  return TRUE;
-}
 
 obj_t *prim_div(struct obj_t **env, struct obj_t *args)
 {
@@ -454,30 +383,147 @@ obj_t *prim_div(struct obj_t **env, struct obj_t *args)
   return new_int(env, v);
 }
 
+obj_t *prim_equal(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nargs = eval_list(env, args);
+  obj_t *v = NULL;
+  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (nargs->car->type != T_INT)
+      error("= is only used for int values");
+
+    if (v == NULL)
+      v = nargs->car;
+
+    if (v->value != nargs->car->value)
+      return NIL;
+  }
+
+  return TRUE;
+}
+
+obj_t *prim_lt(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nargs = eval_list(env, args);
+  obj_t *v = NULL;
+  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (nargs->car->type != T_INT)
+      error("< only takes int value");
+
+    if (v == NULL)
+      v = nargs->car;
+
+    if (v != nargs->car && v->value >= nargs->car->value)
+      return NIL;
+
+    v = nargs->car;
+  }
+
+  return TRUE;
+}
+
+obj_t *prim_lte(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nargs = eval_list(env, args);
+  obj_t *v = NULL;
+  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (nargs->car->type != T_INT)
+      error("< only takes int value");
+
+    if (v == NULL)
+      v = nargs->car;
+
+    if (v != nargs->car && v->value > nargs->car->value)
+      return NIL;
+
+    v = nargs->car;
+  }
+
+  return TRUE;
+}
+
+obj_t *prim_gt(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nargs = eval_list(env, args);
+  obj_t *v = NULL;
+  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (nargs->car->type != T_INT)
+      error("< only takes int value");
+
+    if (v == NULL)
+      v = nargs->car;
+
+    if (v != nargs->car && v->value <= nargs->car->value)
+      return NIL;
+
+    v = nargs->car;
+  }
+
+  return TRUE;
+}
+
+obj_t *prim_gte(struct obj_t **env, struct obj_t *args)
+{
+  obj_t *nargs = eval_list(env, args);
+  obj_t *v = NULL;
+  for (; nargs->type != T_NIL; nargs = nargs->cdr) {
+    if (nargs->car->type != T_INT)
+      error("< only takes int value");
+
+    if (v == NULL)
+      v = nargs->car;
+
+    if (v != nargs->car && v->value < nargs->car->value)
+      return NIL;
+
+    v = nargs->car;
+  }
+
+  return TRUE;
+}
+
+int length(obj_t *lst)
+{
+  if (lst->type == T_NIL)
+    return 0;
+
+  return length(lst->cdr) + 1;
+}
+
 obj_t *prim_car(struct obj_t **env, struct obj_t *args)
 {
-  return eval(env, args->car)->car;
+  obj_t *v = eval(env, args->car);
+  if (v->type != T_CELL && v->type != T_NIL)
+    error("Wrong type argument");
+  return v->car;
 }
 
 obj_t *prim_cdr(struct obj_t **env, struct obj_t *args)
 {
-  return eval(env, args->car)->cdr;
+  obj_t *v = eval(env, args->car);
+  if (v->type != T_CELL && v->type != T_NIL)
+    error("Wrong type argument");
+  return v->cdr;
 }
 
 obj_t *prim_cons(struct obj_t **env, struct obj_t *args)
 {
   obj_t *v = eval_list(env, args);
+  if (length(v) != 2)
+    error("cons: Wrong number of arguments");
+
   return new_cell(env, v->car, v->cdr->car);
 }
 
 obj_t *prim_quote(struct obj_t **env, struct obj_t *args)
 {
+  if (length(args) != 1)
+    error("quote: Wron number of arguments");
   return args->car;
 }
 
 obj_t *prim_progn(struct obj_t **env, struct obj_t *args)
 {
-  obj_t *ret;
+  obj_t *ret = NIL;
   for (; args->type != T_NIL ; args = args->cdr) {
     ret = eval(env, args->car);
   }
@@ -491,6 +537,9 @@ obj_t *prim_let(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_if(struct obj_t **env, struct obj_t *args)
 {
+  if (length(args) < 2)
+    error("if: Wrong number of arguments");
+
   obj_t *cond = eval(env, args->car);
 
   if (cond->type == T_NIL) {
@@ -507,6 +556,9 @@ obj_t *prim_if(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_define(struct obj_t **env, struct obj_t *args)
 {
+  if (length(args) != 2)
+    error("define: Wrong number of arguments");
+
   obj_t *val = eval(env, args->cdr->car);
   define_variable(env, args->car->name, val);
   return val;
@@ -514,6 +566,9 @@ obj_t *prim_define(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_defun(struct obj_t **env, struct obj_t *args)
 {
+  if (length(args) != 3)
+    error("defun: Wrong number of arguments");
+
   obj_t *vargs = args->cdr->car;
   obj_t *body = args->cdr->cdr;
   obj_t *fn = new_function(env, vargs, body);
@@ -523,6 +578,9 @@ obj_t *prim_defun(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_lambda(struct obj_t **env, struct obj_t *args)
 {
+  if (length(args) != 2)
+    error("lambda: Wrong number of arguments");
+
   for (obj_t *nargs = args->car; nargs->type != T_NIL; nargs = nargs->cdr) {
     if (nargs->car->type != T_SYMBOL)
       error("Parameter should be a symbol");
@@ -541,6 +599,9 @@ obj_t *prim_list(struct obj_t **env, struct obj_t *args)
 
 obj_t *prim_defmacro(struct obj_t **env, struct obj_t *args)
 {
+  if (length(args) != 3)
+    error("defmacro: Wrong number of arguments");
+
   obj_t *vargs = args->cdr->car;
   obj_t *body = args->cdr->cdr;
   obj_t *fn = new_macro(env, vargs, body);
